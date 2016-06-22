@@ -49,4 +49,14 @@ Comparison operations::
     FROM post
     WHERE zdb('post', ctid) ==> 'comments > 1'
 
+Raw query::
+
+    pg_session.query(Post.text)\
+        .filter(zdb_query(Post, 'text:(sports,box) or long_description:(wooden w/5 away) and comments < 10'))
+
+    SELECT post.text AS post_text
+    FROM post
+    WHERE zdb('post', ctid) ==> 'text:(sports,box) or long_description:(wooden w/5 away) and comments < 10'
+
+
 Also, regexp supports through like operation
