@@ -40,7 +40,7 @@ def compile_binary_clause(c, tables):
         raise ValueError('Incorrect right parameter')
     elif not isinstance(left, AnnotatedColumn):
         raise ValueError('Incorrect field')
-    elif not isinstance(right.value, (ZdbPhrase, basestring)):
+    elif not isinstance(right.value, (ZdbPhrase, basestring, int)):
         raise ValueError('Incorrect right parameter')
 
     tables.add(left.table.name)
@@ -51,7 +51,7 @@ def compile_boolean_clause_list(c, tables):
     query = []
 
     for _c in c.clauses:
-        query.append(compile_clause(_c))
+        query.append(compile_clause(_c, tables))
 
     if c.operator == operator.or_:
         _oper = ' or '
