@@ -4,7 +4,8 @@ SqlAlchemy support of ZomboDb
 
 This extension provides support of ZomboDb query language for python sqlalchemy ORM
 
-`https://github.com/zombodb/zombodb`_ZomboDb
+ZomboDb project:
+https://github.com/zombodb/zombodb
 
 Examples
 --------
