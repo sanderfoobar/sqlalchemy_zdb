@@ -4,7 +4,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.sql.elements import BinaryExpression, BindParameter, BooleanClauseList, TextClause
-from sqlalchemy.sql.expression import FunctionElement
+from sqlalchemy.sql.expression import FunctionElement, ColumnClause
 from sqlalchemy.schema import Column
 from sqlalchemy.sql.operators import match_op, like_op
 
@@ -123,3 +123,20 @@ def compile_zdb_query(element, compiler, **kw):
     if format_args:
         return 'zdb(\'%s\', ctid) ==> format(\'%s\', %s)' % (table, ' and '.join(query), ', '.join(format_args))
     return 'zdb(\'%s\', ctid) ==> \'%s\'' % (table, ' and '.join(query))
+
+
+class zdb_score(FunctionElement):
+    name = 'zdb_score'
+
+
+@compiles(zdb_score)
+def compile_zdb_score(element, compiler, **kw):
+    clauses = list(element.clauses)
+    if len(clauses) != 1:
+        raise ValueError('Incorrect params')
+
+    c = clauses[0]
+    if isinstance(c, BindParameter) and isinstance(c.value, DeclarativeMeta):
+        return 'zdb_score(\'%s\', %s.ctid)' % (c.value.__tablename__, c.value.__tablename__)
+
+    raise ValueError('Incorrect param')
