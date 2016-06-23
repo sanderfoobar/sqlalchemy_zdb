@@ -5,6 +5,7 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.sql.elements import BinaryExpression, BindParameter, BooleanClauseList, TextClause
 from sqlalchemy.sql.expression import FunctionElement
+from sqlalchemy.schema import Column
 from sqlalchemy.sql.operators import match_op, like_op
 
 
@@ -28,7 +29,7 @@ class ZdbPhrase(object):
         return '"%s"' % self.phrase
 
 
-def compile_binary_clause(c, tables):
+def compile_binary_clause(c, compiler, tables, format_args):
     left = c.left
     right = c.right
 
@@ -36,22 +37,18 @@ def compile_binary_clause(c, tables):
     if _oper is None:
         raise ValueError('Unsupported binary operator %s' % c.operator)
 
-    if not isinstance(right, BindParameter):
-        raise ValueError('Incorrect right parameter')
-    elif not isinstance(left, AnnotatedColumn):
+    if not isinstance(left, AnnotatedColumn):
         raise ValueError('Incorrect field')
-    elif not isinstance(right.value, (ZdbPhrase, basestring, int)):
-        raise ValueError('Incorrect right parameter')
 
     tables.add(left.table.name)
-    return '%s%s%s' % (left.name, _oper, right.value)
+    return '%s%s%s' % (left.name, _oper, compile_clause(right, compiler, tables, format_args))
 
 
-def compile_boolean_clause_list(c, tables):
+def compile_boolean_clause_list(c, compiler, tables, format_args):
     query = []
 
     for _c in c.clauses:
-        query.append(compile_clause(_c, tables))
+        query.append(compile_clause(_c, compiler, tables, format_args))
 
     if c.operator == operator.or_:
         _oper = ' or '
@@ -63,15 +60,22 @@ def compile_boolean_clause_list(c, tables):
     return '(%s)' % _oper.join(query)
 
 
-def compile_clause(c, tables):
+def compile_column_clause(c, compiler, tables, format_args):
+    format_args.append('replace(%s, \'"\', \'\')' % compiler.process(c))
+    return '"%%s"'
+
+
+def compile_clause(c, compiler, tables, format_args):
     if isinstance(c, BindParameter) and isinstance(c.value, basestring):
         return c.value
     elif isinstance(c, TextClause):
         return c.text
     elif isinstance(c, BinaryExpression):
-        return compile_binary_clause(c, tables)
+        return compile_binary_clause(c, compiler, tables, format_args)
     elif isinstance(c, BooleanClauseList):
-        return compile_boolean_clause_list(c, tables)
+        return compile_boolean_clause_list(c, compiler, tables, format_args)
+    elif isinstance(c, Column):
+        return compile_column_clause(c, compiler, tables, format_args)
 
     raise ValueError('Unsupported clause')
 
@@ -84,6 +88,7 @@ class zdb_query(FunctionElement):
 def compile_zdb_query(element, compiler, **kw):
     query = []
     tables = set()
+    format_args = []
 
     for i, c in enumerate(element.clauses):
         add_to_query = True
@@ -100,11 +105,13 @@ def compile_zdb_query(element, compiler, **kw):
                 add_to_query = False
         elif isinstance(c, BooleanClauseList):
             pass
+        elif isinstance(c, Column):
+            pass
         else:
             raise ValueError('Unsupported filter')
 
         if add_to_query:
-            query.append(compile_clause(c, tables))
+            query.append(compile_clause(c, compiler, tables, format_args))
 
     if not tables:
         raise ValueError('No filters passed')
@@ -113,4 +120,6 @@ def compile_zdb_query(element, compiler, **kw):
     else:
         table = tables.pop()
 
+    if format_args:
+        return 'zdb(\'%s\', ctid) ==> format(\'%s\', %s)' % (table, ' and '.join(query), ', '.join(format_args))
     return 'zdb(\'%s\', ctid) ==> \'%s\'' % (table, ' and '.join(query))
