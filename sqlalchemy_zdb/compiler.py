@@ -8,8 +8,8 @@ from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.sql.elements import (
     BinaryExpression, BindParameter, TextClause, BooleanClauseList)
 
-from sa_zdb import zdb_query, zdb_score
-from sa_zdb.operators import COMPARE_OPERATORS
+from sqlalchemy_zdb import zdb_query, zdb_score
+from sqlalchemy_zdb.operators import COMPARE_OPERATORS
 
 
 def compile_binary_clause(c, compiler, tables, format_args):

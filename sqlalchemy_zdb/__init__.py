@@ -23,9 +23,9 @@ def zdb_make_query(q):
     _q = _q.filter(zdb_query(
         and_(*[expr for expr in expressions if isinstance(expr.left,
                                                           ZdbColumn)])))
-    for expr in (expr for expr in expressions if type(next(iter(
-            expr.left.base_columns))) == Column):
-        _q = _q.filter(expr)
+    # for expr in (expr for expr in expressions if type(next(iter(
+    #         expr.left.base_columns))) == Column):
+    #     _q = _q.filter(expr)
     return _q
 
 

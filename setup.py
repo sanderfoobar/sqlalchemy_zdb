@@ -2,13 +2,13 @@ import os
 from setuptools import setup, find_packages
 
 
-version = '3.0.0'
+version = '4.0.0'
 README = os.path.join(os.path.dirname(__file__), 'README.rst')
 long_description = open(README).read()
 setup(
-    name='sa_zdb',
+    name='sqlalchemy_zdb',
     version=version,
-    description='SqlAlchemy support of ZomboDb',
+    description='SQLAlchemy support for ZomboDB',
     long_description=long_description,
     classifiers=[
         'Development Status :: 4 - Beta',
