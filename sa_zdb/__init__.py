@@ -65,3 +65,11 @@ class zdb_score(FunctionElement):
 
 class zdb_query(FunctionElement):
     name = 'zdb_query'
+
+
+class ZdbPhrase(object):
+    def __init__(self, phrase):
+        self.phrase = phrase.strip('"')
+
+    def __str__(self):
+        return '"%s"' % self.phrase
