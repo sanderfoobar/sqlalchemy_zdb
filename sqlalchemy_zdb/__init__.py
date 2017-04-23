@@ -20,8 +20,7 @@ def zdb_make_query(q):
     _q = q.session.query(*q.whereclause._from_objects)
     expressions = _zdb_reflect_query(q)
 
-    expr_by_column_type = lambda cls: [expr for expr in expressions \
-                                       if isinstance(next(iter(expr.left.base_columns)), cls)]
+    expr_by_column_type = lambda cls: [expr for expr in expressions if type(next(iter(expr.left.base_columns))) == cls]
 
     _zdb_expressions = expr_by_column_type(cls=ZdbColumn)
     if len(_zdb_expressions) == 1:
