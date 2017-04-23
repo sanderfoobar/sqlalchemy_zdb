@@ -51,13 +51,27 @@ Please note the 2 ZomboDB specific types: `PHRASE` and `FULLTEXT`.
 
 ## Querying 
 Simply pass the `zdb_make_query` function a SQLAlchemy query object and it will convert it to [ZomboDB syntax](https://github.com/zombodb/zombodb/blob/master/SYNTAX.md).
+
 ```python
 from sqlalchemy_zdb import zdb_make_query
+
 q = session.query(Products)
-q = q.filter(...)
+
+q = q.filter(Products.name == "foo")
+q = q.filter(Products.author.like("bar"))
+q = q.filter(Products.price.between(5, 10))
+q = q.filter(Products.discontinued == False)
+
 q = zdb_make_query(q)
 results = q.all()
 ```
+
+```sql
+SELECT [...] FROM products 
+WHERE zdb('products', ctid) ==> 'author:"bar" and price >= 5 and price <= 10' AND
+products.name = 'foo' AND products.discontinued = false
+```
+
 ### Equals
 
 ```python
@@ -130,26 +144,6 @@ q = zdb_make_query(q)
 SELECT [...] FROM products 
 WHERE zdb('products', ctid) ==> 'author:@"foo"'
 ```
-
-### Combining filters
-
-Combining multiple filters between regular columns and `ZdbColumn` works as expected:
-
-```python
-q = q.filter(Products.name == "foo")
-q = q.filter(Products.author.like("bar"))
-q = q.filter(Products.price.between(5, 10))
-q = q.filter(Products.discontinued == False)
-q = zdb_make_query(q)
-```
-
-```sql
-SELECT [...] FROM products 
-WHERE zdb('products', ctid) ==> 'author:"bar" and price >= 5 and price <= 10' AND
-products.name = 'foo' AND products.discontinued = false
-```
-
-If it does not, please let me know.
 
 ## Manually constructing filters
 If you want to have more control over your query, you may use `zdb_query` directly.
