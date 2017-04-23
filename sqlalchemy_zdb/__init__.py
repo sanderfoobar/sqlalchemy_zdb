@@ -21,6 +21,9 @@ def zdb_make_query(q, debug=False):
     to stdout at the end of this function.
     :return: ``sqlalchemy.orm.query``
     """
+    if q.whereclause is None:
+        return q
+
     _q = q.session.query(*q.whereclause._from_objects)
     expressions = _zdb_reflect_query(q)
 
@@ -52,7 +55,7 @@ def _zdb_reflect_query(q, _data=[]):
         if q.whereclause is None:
             return []
 
-        clauses = q.whereclause.clauses
+        clauses = [q.whereclause.expression]
     else:
         raise Exception("Unsupported query")
 

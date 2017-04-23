@@ -67,7 +67,7 @@ def zdb_like_op(left, right, c, compiler, tables, format_args):
     else:
         _oper = ":"
 
-    return "%s%s\"%s\"" % (left.name, _oper, compile_clause(right, compiler, tables, format_args))
+    return "%s%s%s" % (left.name, _oper, compile_clause(right, compiler, tables, format_args))
 
 COMPARE_OPERATORS = {
     operator.gt: " > ",

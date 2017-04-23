@@ -28,6 +28,7 @@ def compile_binary_clause(c, compiler, tables, format_args):
     if inspect.isfunction(_oper):
         return _oper(left, right, c, compiler, tables, format_args)
     else:
+
         return '%s%s%s' % (left.name, _oper, compile_clause(right, compiler, tables, format_args))
 
 
@@ -54,6 +55,8 @@ def compile_column_clause(c, compiler, tables, format_args):
 
 def compile_clause(c, compiler, tables, format_args):
     if isinstance(c, BindParameter) and isinstance(c.value, (str, int)):
+        if isinstance(c.value, str):
+            return "\"%s\"" % c.value.replace("\"", "")
         return c.value
     elif isinstance(c, TextClause):
         return c.text

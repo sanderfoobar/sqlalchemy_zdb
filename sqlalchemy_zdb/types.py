@@ -24,9 +24,9 @@ class _ZdbDomain(UserDefinedType):
         return str
 
 
-class Phrase(_ZdbDomain):
+class PHRASE(_ZdbDomain):
     def __init__(self, *args):
-        super(Phrase, self).__init__(*args)
+        super(PHRASE, self).__init__(*args)
 
     def get_col_spec(self):
         return "phrase"
@@ -35,9 +35,9 @@ class Phrase(_ZdbDomain):
         return True
 
 
-class Fulltext(_ZdbDomain):
+class FULLTEXT(_ZdbDomain):
     def __init__(self, *args):
-        super(Fulltext, self).__init__(*args)
+        super(FULLTEXT, self).__init__(*args)
 
     def get_col_spec(self):
         return "fulltext"
@@ -46,9 +46,9 @@ class Fulltext(_ZdbDomain):
         return True
 
 
-class FulltextWithShingles(_ZdbDomain):
+class FULLTEXT_SHINGLES(_ZdbDomain):
     def __init__(self, *args):
-        super(FulltextWithShingles, self).__init__(*args)
+        super(FULLTEXT_SHINGLES, self).__init__(*args)
 
     def get_col_spec(self):
         return "fulltext_with_shingles"
