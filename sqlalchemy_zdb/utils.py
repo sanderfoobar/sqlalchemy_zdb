@@ -1,14 +1,15 @@
+from __future__ import print_function
 from sqlalchemy.sql import compiler
 from psycopg2.extensions import adapt as sqlescape
 
 
 def query_to_sql(q):
     r"""SQL as string
-    :param query: ``sqlalchemy.orm.query``
+    :param q: ``sqlalchemy.orm.query``
     :return: SQL as string
     """
     dialect = q.session.bind.dialect
-    comp = compiler.SQLCompiler(dialect, query.statement)
+    comp = compiler.SQLCompiler(dialect, q.statement)
     comp.compile()
     params = {}
 
@@ -17,6 +18,12 @@ def query_to_sql(q):
     else:
         _items = comp.params.iteritems
 
-    for k, v in _items:
-        params[k] = sqlescape(v)
-    return comp.string % params
+    return comp.string
+
+
+def print_sql(q):
+    r"""Print SQL for the query object
+    :param q: ``sqlalchemy.orm.query``
+    :return:
+    """
+    print("\n\n%s\n\n" % query_to_sql(q))

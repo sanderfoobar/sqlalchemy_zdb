@@ -5,16 +5,20 @@ from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.orm.query import Query
 from sqlalchemy import Column, and_
 
+from sqlalchemy_zdb.utils import print_sql
+
 
 class ZdbColumn(Column):
     def __init__(self, *args, **kwargs):
         super(ZdbColumn, self).__init__(*args, **kwargs)
 
 
-def zdb_make_query(q):
+def zdb_make_query(q, debug=False):
     """
     SQLAlchemy query -> SQLAchemy query with zdb
     :param q: ``sqlalchemy.orm.query``
+    :param debug: Enabling debug will print out SQL
+    to stdout at the end of this function.
     :return: ``sqlalchemy.orm.query``
     """
     _q = q.session.query(*q.whereclause._from_objects)
@@ -27,10 +31,11 @@ def zdb_make_query(q):
         _q = _q.filter(zdb_query(*_zdb_expressions))
     else:
         pass  # @TODO: perhaps give out a warning
-
     for expr in expr_by_column_type(cls=Column):
         _q = _q.filter(expr)
 
+    if debug:
+        print_sql(_q)
     return _q
 
 
