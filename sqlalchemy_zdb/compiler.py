@@ -53,7 +53,7 @@ def compile_column_clause(c, compiler, tables, format_args):
 
 
 def compile_clause(c, compiler, tables, format_args):
-    if isinstance(c, BindParameter) and isinstance(c.value, str):
+    if isinstance(c, BindParameter) and isinstance(c.value, (str, int)):
         return c.value
     elif isinstance(c, TextClause):
         return c.text

@@ -20,12 +20,18 @@ def zdb_make_query(q):
     _q = q.session.query(*q.whereclause._from_objects)
     expressions = _zdb_reflect_query(q)
 
-    _q = _q.filter(zdb_query(
-        and_(*[expr for expr in expressions if isinstance(expr.left,
-                                                          ZdbColumn)])))
-    # for expr in (expr for expr in expressions if type(next(iter(
-    #         expr.left.base_columns))) == Column):
-    #     _q = _q.filter(expr)
+    _zdb_expressions = [e for e in expressions if isinstance(next(iter(e.left.base_columns)), ZdbColumn)]
+    if len(_zdb_expressions) == 1:
+        _q = _q.filter(zdb_query(_zdb_expressions[0]))
+    elif len(_zdb_expressions) > 1:
+        _q = _q.filter(zdb_query(and_(*_zdb_expressions)))
+    else:
+        pass  # @TODO: perhaps give out warning
+
+    for expr in (expr for expr in expressions if type(next(iter(
+            expr.left.base_columns))) == Column):
+        _q = _q.filter(expr)
+
     return _q
 
 
@@ -73,3 +79,5 @@ class ZdbPhrase(object):
 
     def __str__(self):
         return '"%s"' % self.phrase
+
+from sqlalchemy_zdb.compiler import compile_zdb_query
