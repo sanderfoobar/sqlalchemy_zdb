@@ -28,9 +28,12 @@ def zdb_between_op(left, right, *args, **kwargs):
     """
     sql = ""
     for i, clause in enumerate(right.clauses):
+        if not isinstance(clause.value, int):
+            raise Exception("Unsupported use of BETWEEN, only integers allowed")
+
         _oper = [COMPARE_OPERATORS[operator.ge],
                  COMPARE_OPERATORS[operator.le]][i % 2]
-        sql += "%s%s%s%s" % (left.name, _oper, clause.value, "" if i % 2 else " and ")
+        sql += "%s%s%d%s" % (left.name, _oper, int(clause.value), "" if i % 2 else " and ")
     return sql
 
 
