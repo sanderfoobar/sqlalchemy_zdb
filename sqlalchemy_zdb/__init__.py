@@ -47,6 +47,9 @@ def _zdb_reflect_query(q, _data=[]):
     if isinstance(q, BooleanClauseList):
         clauses = q
     elif isinstance(q, Query):
+        if q.whereclause is None:
+            return []
+
         clauses = q.whereclause.clauses
     else:
         raise Exception("Unsupported query")
