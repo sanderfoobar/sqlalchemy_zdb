@@ -23,10 +23,8 @@ def zdb_make_query(q):
     expr_by_column_type = lambda cls: [expr for expr in expressions if type(next(iter(expr.left.base_columns))) == cls]
 
     _zdb_expressions = expr_by_column_type(cls=ZdbColumn)
-    if len(_zdb_expressions) == 1:
-        _q = _q.filter(zdb_query(_zdb_expressions[0]))
-    elif len(_zdb_expressions) > 1:
-        _q = _q.filter(zdb_query(and_(*_zdb_expressions)))
+    if len(_zdb_expressions) >= 1:
+        _q = _q.filter(zdb_query(*_zdb_expressions))
     else:
         pass  # @TODO: perhaps give out a warning
 
