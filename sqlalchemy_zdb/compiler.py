@@ -6,9 +6,10 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.sql.elements import (
-    BinaryExpression, BindParameter, TextClause, BooleanClauseList)
+    BinaryExpression, BindParameter, TextClause, BooleanClauseList, Grouping,
+    False_, True_)
 
-from sqlalchemy_zdb import zdb_query, zdb_score
+from sqlalchemy_zdb import zdb_raw_query, zdb_score
 from sqlalchemy_zdb.operators import COMPARE_OPERATORS
 
 
@@ -28,7 +29,6 @@ def compile_binary_clause(c, compiler, tables, format_args):
     if inspect.isfunction(_oper):
         return _oper(left, right, c, compiler, tables, format_args)
     else:
-
         return '%s%s%s' % (left.name, _oper, compile_clause(right, compiler, tables, format_args))
 
 
@@ -53,11 +53,29 @@ def compile_column_clause(c, compiler, tables, format_args):
     return '"%%s"'
 
 
+def compile_grouping(c, compiler, tables, format_args):
+    sql = "(%s)"
+    values = []
+    for elem in c.element:
+        if isinstance(elem.value, str):
+            val = "\"%s\"" % elem.value
+        elif isinstance(elem.value, int):
+            val = str(elem.value)
+        else:
+            raise Exception("Unsupported type for IN")
+        values.append(val)
+
+    return sql % ",".join(values)
+
+
 def compile_clause(c, compiler, tables, format_args):
     if isinstance(c, BindParameter) and isinstance(c.value, (str, int)):
         if isinstance(c.value, str):
             return "\"%s\"" % c.value.replace("\"", "")
         return c.value
+    elif isinstance(c, (True_, False_)):
+        # @TODO: unsure if `true` or `false` are ES bools
+        return str(type(c) == True_).lower()
     elif isinstance(c, TextClause):
         return c.text
     elif isinstance(c, BinaryExpression):
@@ -66,11 +84,12 @@ def compile_clause(c, compiler, tables, format_args):
         return compile_boolean_clause_list(c, compiler, tables, format_args)
     elif isinstance(c, Column):
         return compile_column_clause(c, compiler, tables, format_args)
-
+    elif isinstance(c, Grouping):
+        return compile_grouping(c, compiler, tables, format_args)
     raise ValueError('Unsupported clause')
 
 
-@compiles(zdb_query)
+@compiles(zdb_raw_query)
 def compile_zdb_query(element, compiler, **kw):
     query = []
     tables = set()
@@ -122,6 +141,3 @@ def compile_zdb_score(element, compiler, **kw):
         return 'zdb_score(\'%s\', %s.ctid)' % (c.value.__tablename__, c.value.__tablename__)
 
     raise ValueError('Incorrect param')
-
-
-

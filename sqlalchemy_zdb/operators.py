@@ -1,7 +1,7 @@
 import re
 import operator
 
-from sqlalchemy.sql.operators import match_op, like_op, between_op
+from sqlalchemy.sql.operators import match_op, like_op, between_op, in_op
 
 
 def zdb_between_op(left, right, *args, **kwargs):
@@ -38,7 +38,7 @@ def zdb_between_op(left, right, *args, **kwargs):
 
 
 def zdb_like_op(left, right, c, compiler, tables, format_args):
-    r"""Implement the ``like`` operator.
+    r"""Implement the ``LIKE`` operator.
 
     In a normal context, produces the expression::
 
@@ -69,6 +69,15 @@ def zdb_like_op(left, right, c, compiler, tables, format_args):
 
     return "%s%s%s" % (left.name, _oper, compile_clause(right, compiler, tables, format_args))
 
+
+def zdb_in_op(left, right, c, compiler, tables, format_args):
+    r"""Implement the ``IN`` operator."""
+    from sqlalchemy_zdb.compiler import compile_clause
+
+    _oper = ":"
+    return "%s%s%s" % (left.name, _oper, compile_clause(right, compiler, tables, format_args))
+
+
 COMPARE_OPERATORS = {
     operator.gt: " > ",
     operator.lt: " < ",
@@ -78,5 +87,6 @@ COMPARE_OPERATORS = {
     match_op: ":@",
     like_op: zdb_like_op,
     operator.eq: ":",
-    between_op: zdb_between_op
+    between_op: zdb_between_op,
+    in_op: zdb_in_op
 }

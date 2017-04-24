@@ -5,7 +5,91 @@ from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.orm.query import Query
 from sqlalchemy import Column, and_
 
+from sqlalchemy.orm.scoping import scoped_session, Session
 from sqlalchemy_zdb.utils import print_sql
+
+
+class ZdbQuery(Query):
+    def __init__(self, entities, session=None):
+        if isinstance(session, scoped_session):
+            session = session()
+        elif not isinstance(session, Session):
+            raise Exception("Invalid session object")
+
+        super(ZdbQuery, self).__init__(entities, session=session)
+        self._zdb_expressions = []
+        self._zdb_limit = None
+        self._zdb_offset = None
+
+    def _zdb_check_session(self):
+        if not self.session:
+            raise Exception("Session not set")
+
+    @staticmethod
+    def _zdb_get_columns(expressions, column_type):
+        return [expr for expr in expressions if \
+                type(next(iter(expr.left.base_columns))) == column_type]
+
+    def _zdb_reflect_query(self, clauses, _data=None):
+        if not _data:
+            _data = []
+
+        for i, c in enumerate(clauses):
+            if isinstance(c, zdb_raw_query):
+                raise Exception("ZdbQuery not compatible with direct "
+                                "useage of zdb_raw_query()")
+            elif isinstance(c, BindParameter) and isinstance(c.value, str):
+                raise Exception("BindParameter ... ehh")  # return c.value
+            elif isinstance(c, TextClause):
+                raise Exception("TextClause not supported")  # return c.text
+            elif isinstance(c, BinaryExpression):
+                if not isinstance(c.left, AnnotatedColumn):
+                    raise Exception("Unsupported clause")
+                _data.append(c)
+            elif isinstance(c, BooleanClauseList):
+                _data = self._zdb_reflect_query(c, _data)
+            elif isinstance(c, Column):
+                raise Exception(
+                    "ColumnClause not supported")  # return compile_column_clause(c, compiler, tables, format_args)
+        return _data
+
+    def _zdb_make_query(self):
+        exprs = self._zdb_reflect_query(self._zdb_expressions)
+        expr_zdb = self._zdb_get_columns(exprs, ZdbColumn)
+        expr_sqla = self._zdb_get_columns(exprs, Column)
+
+        # insert zdb filters
+        if len(expr_zdb) >= 1:
+            self = super(ZdbQuery, self).filter(zdb_raw_query(*expr_zdb))
+
+        # insert sqla filters
+        for expr in expr_sqla:
+            self = super(ZdbQuery, self).filter(expr)
+
+        # insert limit/offset
+        if self._zdb_limit:
+            self = super(ZdbQuery, self).limit(self._zdb_limit)
+        if self._zdb_offset:
+            self = super(ZdbQuery, self).offset(self._zdb_offset)
+
+        return self
+
+    def filter(self, *criterion):
+        for criter in criterion:
+            self._zdb_expressions.append(criter)
+        return self
+
+    def limit(self, value):
+        self._zdb_limit = value
+        return self
+
+    def offset(self, value):
+        self._zdb_offset = value
+        return self
+
+    def all(self):
+        self = self._zdb_make_query()
+        return super(ZdbQuery, self).all()
 
 
 class ZdbColumn(Column):
@@ -13,73 +97,11 @@ class ZdbColumn(Column):
         super(ZdbColumn, self).__init__(*args, **kwargs)
 
 
-def zdb_make_query(q, debug=False):
-    """
-    SQLAlchemy query -> SQLAchemy query with zdb
-    :param q: ``sqlalchemy.orm.query``
-    :param debug: Enabling debug will print out SQL
-    to stdout at the end of this function.
-    :return: ``sqlalchemy.orm.query``
-    """
-    if q.whereclause is None:
-        return q
-
-    _q = q.session.query(*q.whereclause._from_objects)
-    expressions = _zdb_reflect_query(q)
-
-    expr_by_column_type = lambda cls: [expr for expr in expressions if type(next(iter(expr.left.base_columns))) == cls]
-
-    _zdb_expressions = expr_by_column_type(cls=ZdbColumn)
-    if len(_zdb_expressions) >= 1:
-        _q = _q.filter(zdb_query(*_zdb_expressions))
-    else:
-        pass  # @TODO: perhaps give out a warning
-    for expr in expr_by_column_type(cls=Column):
-        _q = _q.filter(expr)
-
-    if debug:
-        print_sql(_q)
-    return _q
-
-
-def _zdb_reflect_query(q, _data=[]):
-    """
-    SQLAchemy query reflector. Parses expressions.
-    :param q: ``sqlalchemy.orm.query``
-    :param _data:
-    :return: list of expressions
-    """
-    if isinstance(q, BooleanClauseList):
-        clauses = q
-    elif isinstance(q, Query):
-        if q.whereclause is None:
-            return []
-
-        clauses = [q.whereclause.expression]
-    else:
-        raise Exception("Unsupported query")
-
-    for i, c in enumerate(clauses):
-        if isinstance(c, BindParameter) and isinstance(c.value, str):
-            raise Exception("BindParameter ... ehh")  #return c.value
-        elif isinstance(c, TextClause):
-            raise Exception("TextClause not supported")  #return c.text
-        elif isinstance(c, BinaryExpression):
-            if not isinstance(c.left, AnnotatedColumn):
-                raise Exception("Unsupported clause")
-            _data.append(c)
-        elif isinstance(c, BooleanClauseList):
-            _data = _zdb_reflect_query(c, _data)
-        elif isinstance(c, Column):
-            raise Exception("ColumnClause not supported")  #return compile_column_clause(c, compiler, tables, format_args)
-    return _data
-
-
 class zdb_score(FunctionElement):
     name = 'zdb_score'
 
 
-class zdb_query(FunctionElement):
+class zdb_raw_query(FunctionElement):
     name = 'zdb_query'
 
 
