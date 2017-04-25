@@ -13,6 +13,15 @@ from sqlalchemy_zdb import zdb_raw_query, zdb_score
 from sqlalchemy_zdb.operators import COMPARE_OPERATORS
 
 
+escape_tokens = [
+   "'", "\"",  ":",  "*",  "~", "?",
+   "!",  "%",  "&",  "(",  ")", ",",
+   "<",  "=",  ">",  "[",  "]", "^",
+   "{",  "}",  " ",  "\r", "\n",
+   "\t", "\f"
+]
+
+
 def compile_binary_clause(c, compiler, tables, format_args):
     left = c.left
     right = c.right
@@ -71,10 +80,13 @@ def compile_grouping(c, compiler, tables, format_args):
 def compile_clause(c, compiler, tables, format_args):
     if isinstance(c, BindParameter) and isinstance(c.value, (str, int)):
         if isinstance(c.value, str):
-            return "\"%s\"" % c.value.replace("\"", "")
+            val = c.value
+            for escape_token in escape_tokens:
+                if escape_token in c.value:
+                    val = c.value.replace(escape_token, "\\%s" % escape_token)
+            return val
         return c.value
     elif isinstance(c, (True_, False_)):
-        # @TODO: unsure if `true` or `false` are ES bools
         return str(type(c) == True_).lower()
     elif isinstance(c, TextClause):
         return c.text
