@@ -75,8 +75,59 @@ SELECT [...] FROM products
 WHERE zdb('products', ctid) ==> 'author:("foo","bar")'
 ```
 
+### #LIMIT
 
-## Manually constructing filters
+ZomboDB allows you to limit the number of rows that are returned from a text query, which is similar to Postgres' `SQL-level ORDER BY LIMIT OFFSET` clauses, but can be drastically more efficient because less data is being passed around between Elasticsearch and Postgres.
+
+Syntax:
+
+```
+#limit(sort_field asc|desc, offset_val, limit_val)
+```
+E.g:
+```sql
+SELECT [...] FROM table 
+    WHERE zdb('table', ctid) ==> '#limit(price asc, 0, 10) ....'
+ORDER BY author_name ASC;
+```
+
+In order to construct such a query in SQLAlchemy, the query object must receive:
+
+
+1. A limit using `limit()`
+2. A `ZdbColumn` or `ZdbScore` using `order_by()`
+
+Example #1 - using a column marked as `ZdbColumn` (*Products.price*)
+
+```python
+q = q.filter(Products.author.in_(["foo", "bar"]))
+q = q.order_by(Products.price.desc(), 
+               Products.availability_date.desc()).limit(1).offset(1)
+```
+
+```sql
+SELECT [...] FROM products 
+    WHERE zdb('products', ctid) ==> '#limit(price desc, 1, 1) author:("foo","bar")' ORDER BY products.availability_date DESC
+```
+
+In other words, if you were previously already using `limit()` in conjunction with `order_by()` in your query building and the subject column is `ZdbColumn`, it'll try to bake a proper query for it.
+
+Example #2 - using `ZdbScore`
+
+```python
+from sqlalchemy_zdb.types import ZdbScore
+
+q = q.filter(Products.author.in_(["foo", "bar"]))
+q = q.order_by(ZdbScore, 
+               Products.availability_date.desc(), 
+               Products.long_description.desc()).limit(1).offset(1)
+```
+
+`ZdbScore` is still in development.
+
+
+
+## Constructing filters
 If you want to have more control over your query, you may use `zdb_raw_query` directly.
 
 Phrase query:

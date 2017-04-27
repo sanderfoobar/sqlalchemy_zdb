@@ -1,21 +1,14 @@
 SQLAlchemy support for ZomboDb
 =============================
 
-This extension provides **very experimental** support for the ZomboDB query language with SQLAlchemy.
+**Experimental** support for the ZomboDB query language with SQLAlchemy. Hard fork of [sqla_zdb](https://github.com/xxxbobrxxx/sqlalchemy_zombodb) written by Владислав Пискунов.
 
-ZomboDb project: <https://github.com/zombodb/zombodb>
+Using `sqlalchemy_zdb.ZdbQuery`, queries will be reflected and transformed into SQL that contain the ZomboDB query syntax. 
 
-If you're doing simple `SELECT` queries, chances are you will be able to use this library to speed up your web application. 
-
-Advanced features of the ZomboDB query language are not supported.
+Please check out [Query Syntax](https://github.com/skftn/sqlalchemy_zdb/blob/master/QUERY_SYNTAX.md) for  an example of supported expressions. 
 
 
-## Quick Links
-   - [Query Syntax](https://github.com/skftn/sqlalchemy_zdb/blob/master/QUERY_SYNTAX.md)  
-   - [ZomboDB Cheatsheet](https://github.com/skftn/sqlalchemy_zdb/blob/master/zombodb_cheatsheet.md)  
-
-
-## How to Use It
+## Example
 
 Example SQL table:
 
@@ -37,8 +30,7 @@ CREATE TABLE products (
 SQLAlchemy model:
 
 ```python
-from sqlalchemy_zdb import ZdbColumn
-from sqlalchemy_zdb.types import PHRASE, FULLTEXT
+from sqlalchemy_zdb.types import PHRASE, FULLTEXT, ZdbColumn
 
 class Products(base):
     __tablename__ = "products"
@@ -88,14 +80,11 @@ products.name = 'foo' AND products.discontinued = false
 
 Note that both the `name` and `discontinued` columns were not included in the ZomboDB syntax, instead they appear as valid PgSQL. This is because they are not of type `ZdbColumn`. 
 
-## Issues
+## Word to the wise
 
-- `ZdbQuery` inherits from `sqlalchemy.orm.session.Query`, this may cause a whole range of problems. *knocks wood*
-- May cause unsuspected behaviour during multiple `and/or` clauses combining regular `Column` and `ZdbColumn`.
-- ZomboDB `CREATE INDEX` and/or `CREATE TYPE` not implemented yet.
-- Possible SQL injection through (not limited to) the `:~` operator
-- No unit tests as of this moment.
+This extension is currently in alpha. If you decide to use this package, double check if the SQL queries generated are correct. Upon weird behaviour please submit an issue so I can look into it.
 
-## Credits
+Known issues:
 
-- Владислав Пискунов for writing `zdb_raw_query` and [sa_zdb](https://github.com/xxxbobrxxx/sqlalchemy_zombodb).
+- ZomboDB `CREATE INDEX` and/or `CREATE TYPE` not implemented yet
+- No unit tests as of this moment
