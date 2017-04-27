@@ -34,8 +34,8 @@ class ZdbQuery(Query):
     @staticmethod
     def _zdb_clauses_by_column(clauses: List[ColumnElement]):
         """Filters a list of expressions based on column types"""
-        if not clauses: return {}
         _rtn = {"zdb": [], "sqla": []}
+        if not clauses: return _rtn
 
         for expr in clauses:
             if hasattr(expr, "element") and type(expr.element) == ZdbScore:
@@ -87,7 +87,7 @@ class ZdbQuery(Query):
         # insert zdb filters
         if len(exprs.get("zdb", 0)) >= 1:
             _order = {}
-            if order["zdb"]:
+            if order.get("zdb"):
                 # needed later to ignore sqla limit/offset
                 had_zdb_order = True
 
@@ -100,8 +100,8 @@ class ZdbQuery(Query):
                 }
 
             # append the rest to a normal order_by
-            if order["zdb"]:
-                order["sqla"].append(*order["zdb"])
+            if order.get("zdb"):
+                order.get("sqla").append(*order["zdb"])
 
             self = super(ZdbQuery, self).filter(zdb_raw_query(*exprs.get("zdb"), **_order))
 
@@ -110,7 +110,7 @@ class ZdbQuery(Query):
             self = super(ZdbQuery, self).filter(expr)
 
         # insert remaining sqla order_by
-        if order["sqla"]:
+        if order.get("sqla"):
             self = super(ZdbQuery, self).order_by(*order["sqla"])
 
         if not had_zdb_order:

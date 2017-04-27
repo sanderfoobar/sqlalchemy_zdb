@@ -170,7 +170,7 @@ def compile_zdb_query(element, compiler, **kw):
     else:
         table = tables.pop()
 
-    if hasattr(element, "_zdb_order_by"):
+    if hasattr(element, "_zdb_order_by") and element._zdb_order_by:
         limit = compile_limit(order_by=element._zdb_order_by,
                               offset=element._zdb_offset,
                               limit=element._zdb_limit)
