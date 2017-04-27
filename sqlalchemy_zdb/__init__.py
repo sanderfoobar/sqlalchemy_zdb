@@ -1,12 +1,15 @@
+from typing import List
+
 from sqlalchemy.sql.elements import BindParameter, TextClause
 from sqlalchemy.sql.expression import (
-    BooleanClauseList, BinaryExpression, FunctionElement)
+    BooleanClauseList, BinaryExpression, FunctionElement, UnaryExpression, ColumnElement)
 from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.orm.query import Query
 from sqlalchemy import Column, and_
 
 from sqlalchemy.orm.scoping import scoped_session, Session
 from sqlalchemy_zdb.utils import print_sql
+from sqlalchemy_zdb.types import ZdbColumn, ZdbScore
 
 
 class ZdbQuery(Query):
@@ -17,20 +20,43 @@ class ZdbQuery(Query):
             raise Exception("Invalid session object")
 
         super(ZdbQuery, self).__init__(entities, session=session)
-        self._zdb_expressions = []
-        self._zdb_limit = None
-        self._zdb_offset = None
+        self._zdb_data = {
+            "filter": [],
+            "order": [],
+            "offset": 0,
+            "limit": None
+        }
 
     def _zdb_check_session(self):
         if not self.session:
             raise Exception("Session not set")
 
     @staticmethod
-    def _zdb_get_columns(expressions, column_type):
-        return [expr for expr in expressions if \
-                type(next(iter(expr.left.base_columns))) == column_type]
+    def _zdb_clauses_by_column(clauses: List[ColumnElement]):
+        """Filters a list of expressions based on column types"""
+        if not clauses: return {}
+        _rtn = {"zdb": [], "sqla": []}
 
-    def _zdb_reflect_query(self, clauses, _data=None):
+        for expr in clauses:
+            if hasattr(expr, "element") and type(expr.element) == ZdbScore:
+                # LIMIT with ZdbScore
+                _rtn["zdb"].append(expr)
+                continue
+            elif isinstance(expr, UnaryExpression):
+                # regular ORDER_BY/DISTINCT
+                _columns = expr.element.base_columns
+            else:
+                # regular expression (no, not regex ;)
+                _columns = expr.left.base_columns
+
+            if type(next(iter(_columns))) == ZdbColumn:
+                _rtn["zdb"].append(expr)
+            else:
+                _rtn["sqla"].append(expr)
+        return _rtn
+
+    @staticmethod
+    def _zdb_reflect(clauses: list, _data=None):
         if not _data:
             _data = []
 
@@ -47,54 +73,76 @@ class ZdbQuery(Query):
                     raise Exception("Unsupported clause")
                 _data.append(c)
             elif isinstance(c, BooleanClauseList):
-                _data = self._zdb_reflect_query(c, _data)
+                _data = ZdbQuery._zdb_reflect(c, _data)
             elif isinstance(c, Column):
                 raise Exception(
                     "ColumnClause not supported")  # return compile_column_clause(c, compiler, tables, format_args)
         return _data
 
     def _zdb_make_query(self):
-        exprs = self._zdb_reflect_query(self._zdb_expressions)
-        expr_zdb = self._zdb_get_columns(exprs, ZdbColumn)
-        expr_sqla = self._zdb_get_columns(exprs, Column)
+        had_zdb_order = False
+        exprs = self._zdb_clauses_by_column(self._zdb_reflect(self._zdb_data["filter"]))
+        order = self._zdb_clauses_by_column(self._zdb_data["order"])
 
         # insert zdb filters
-        if len(expr_zdb) >= 1:
-            self = super(ZdbQuery, self).filter(zdb_raw_query(*expr_zdb))
+        if len(exprs.get("zdb", 0)) >= 1:
+            _order = {}
+            if order["zdb"]:
+                # needed later to ignore sqla limit/offset
+                had_zdb_order = True
 
-        # insert sqla filters
-        for expr in expr_sqla:
+                # only ORDER_BY on one column in a zdb query
+                _order_clause = order["zdb"].pop(0)
+                _order = {
+                    "order_by": _order_clause,
+                    "limit": self._zdb_data["limit"],
+                    "offset": self._zdb_data["offset"]
+                }
+
+            # append the rest to a normal order_by
+            if order["zdb"]:
+                order["sqla"].append(*order["zdb"])
+
+            self = super(ZdbQuery, self).filter(zdb_raw_query(*exprs.get("zdb"), **_order))
+
+        # insert remaining sqla filters
+        for expr in exprs.get("sqla", []):
             self = super(ZdbQuery, self).filter(expr)
 
-        # insert limit/offset
-        if self._zdb_limit:
-            self = super(ZdbQuery, self).limit(self._zdb_limit)
-        if self._zdb_offset:
-            self = super(ZdbQuery, self).offset(self._zdb_offset)
+        # insert remaining sqla order_by
+        if order["sqla"]:
+            self = super(ZdbQuery, self).order_by(*order["sqla"])
+
+        if not had_zdb_order:
+            # insert sqla limit/offset
+            if self._zdb_data.get("limit"):
+                self = super(ZdbQuery, self).limit(self._zdb_data.get("limit"))
+            if self._zdb_data.get("offset"):
+                self = super(ZdbQuery, self).offset(self._zdb_data.get("offset"))
 
         return self
 
     def filter(self, *criterion):
-        for criter in criterion:
-            self._zdb_expressions.append(criter)
+        if criterion:
+            self._zdb_data["filter"].append(*criterion)
         return self
 
-    def limit(self, value):
-        self._zdb_limit = value
+    def limit(self, value: int):
+        self._zdb_data["limit"] = value
         return self
 
-    def offset(self, value):
-        self._zdb_offset = value
+    def offset(self, value: int):
+        self._zdb_data["offset"] = value
+        return self
+
+    def order_by(self, *criterion: List[UnaryExpression]):
+        for order in criterion:
+            self._zdb_data["order"].append(order)
         return self
 
     def all(self):
         self = self._zdb_make_query()
         return super(ZdbQuery, self).all()
-
-
-class ZdbColumn(Column):
-    def __init__(self, *args, **kwargs):
-        super(ZdbColumn, self).__init__(*args, **kwargs)
 
 
 class zdb_score(FunctionElement):
@@ -104,12 +152,11 @@ class zdb_score(FunctionElement):
 class zdb_raw_query(FunctionElement):
     name = 'zdb_query'
 
+    def __init__(self, *criterion, order_by=None, offset=0, limit=None):
+        super(zdb_raw_query, self).__init__(*criterion)
+        self._zdb_order_by = order_by
+        self._zdb_limit = limit
+        self._zdb_offset = offset
 
-class ZdbPhrase(object):
-    def __init__(self, phrase):
-        self.phrase = phrase.strip('"')
-
-    def __str__(self):
-        return '"%s"' % self.phrase
 
 from sqlalchemy_zdb.compiler import compile_zdb_query

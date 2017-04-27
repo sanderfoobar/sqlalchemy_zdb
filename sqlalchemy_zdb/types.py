@@ -1,3 +1,4 @@
+from sqlalchemy import Column
 from sqlalchemy.types import UserDefinedType
 
 
@@ -55,3 +56,21 @@ class FULLTEXT_SHINGLES(_ZdbDomain):
 
     def is_mutable(self):
         return True
+
+
+class ZdbColumn(Column):
+    def __init__(self, *args, **kwargs):
+        super(ZdbColumn, self).__init__(*args, **kwargs)
+
+
+class ZdbPhrase(object):
+    def __init__(self, phrase: str):
+        self.phrase = phrase.strip('"')
+
+    def __str__(self):
+        return '"%s"' % self.phrase
+
+
+class ZdbScore(Column):
+    def __init__(self):
+        super(ZdbScore, self)
