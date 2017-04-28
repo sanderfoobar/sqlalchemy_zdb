@@ -1,14 +1,22 @@
 SQLAlchemy support for ZomboDb
 =============================
 
-**Experimental** support for the ZomboDB query language with SQLAlchemy. Hard fork of [sqla_zdb](https://github.com/xxxbobrxxx/sqlalchemy_zombodb) written by Владислав Пискунов.
+**Experimental** support for the ZomboDB query language with SQLAlchemy. Hard fork of [sqla_zdb](https://github.com/xxxbobrxxx/sqlalchemy_zombodb).
 
-Using `sqlalchemy_zdb.ZdbQuery`, queries will be reflected and transformed into SQL that contain the ZomboDB query syntax. 
-
-Please check out [Query Syntax](https://github.com/skftn/sqlalchemy_zdb/blob/master/QUERY_SYNTAX.md) for  an example of supported expressions. 
+Please check out [Query Syntax](https://github.com/skftn/sqlalchemy_zdb/blob/master/QUERY_SYNTAX.md) for an example of supported expressions. 
 
 
-## Example
+## What you need
+
+Product       | Version 
+---           | ---      
+Postgres      | 9.5
+Elasticsearch | 1.7.1+ (not 2.0)
+Python        | 3.5+
+ZomboDB       | 3.1.12
+
+
+## Quick Example
 
 Example SQL table:
 
@@ -74,11 +82,11 @@ results = q.all()
 
 ```sql
 SELECT [...] FROM products 
-WHERE zdb('products', ctid) ==> 'author:"bar" and price >= 5 and price <= 10' AND
+WHERE zdb('products', ctid) ==> 'author:"bar" and price:5 /to/ 10' AND
 products.name = 'foo' AND products.discontinued = false
 ```
 
-Note that both the `name` and `discontinued` columns were not included in the ZomboDB syntax, instead they appear as valid PgSQL. This is because they are not of type `ZdbColumn`. 
+Note that both the `name` and `discontinued` columns were not included in the ZomboDB query, instead they appear as valid PgSQL. This is because they were not of type `ZdbColumn` during query compilation. 
 
 ## Word to the wise
 
