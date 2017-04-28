@@ -5,7 +5,7 @@ from sqlalchemy.sql.expression import (
     BooleanClauseList, BinaryExpression, FunctionElement, UnaryExpression, ColumnElement)
 from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.orm.query import Query
-from sqlalchemy import Column, and_
+from sqlalchemy import Column, and_, func, text
 
 from sqlalchemy.orm.scoping import scoped_session, Session
 from sqlalchemy_zdb.utils import print_sql
@@ -38,7 +38,7 @@ class ZdbQuery(Query):
         if not clauses: return _rtn
 
         for expr in clauses:
-            if hasattr(expr, "element") and type(expr.element) == ZdbScore:
+            if isinstance(expr, ZdbScore):
                 # LIMIT with ZdbScore
                 _rtn["zdb"].append(expr)
                 continue
@@ -99,7 +99,17 @@ class ZdbQuery(Query):
                     "offset": self._zdb_data["offset"]
                 }
 
-            # append the rest to a normal order_by
+                # prepend a 'zdb_score()' to sqla ORDER_BY when using #limit(_score, ...)
+                if isinstance(_order_clause, ZdbScore):
+                    table = self.selectable.froms[0].name
+                    __order_clause = func.zdb_score(table, text("ctid"))
+                    __order_clause = getattr(__order_clause, _order_clause._zdb_direction)()
+                    order["sqla"].insert(0, __order_clause)
+                else:
+                    # prepend regular ORDER_BY to sqla when using #limit(<column_name)
+                    order["sqla"].insert(0, _order_clause)
+
+            # append remaining ORDER clauses to sqla
             if order.get("zdb"):
                 order.get("sqla").append(*order["zdb"])
 

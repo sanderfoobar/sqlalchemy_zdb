@@ -31,7 +31,6 @@ WHERE zdb('products', ctid) ==> 'price:5 /to/ 14.5'
 
 ### LIKE
 
-When passed a string, produces the expression: `column:"foo"`
 ```python
 q = q.filter(Products.author.like("foo"))
 ```
@@ -95,16 +94,17 @@ Example #1 - using a column marked as `ZdbColumn` (*Products.price*)
 
 ```python
 q = q.filter(Products.author.in_(["foo", "bar"]))
-q = q.order_by(Products.price.desc(), 
+q = q.order_by(Products.price.desc(),
                Products.availability_date.desc()).limit(1).offset(1)
 ```
 
 ```sql
 SELECT [...] FROM products 
-    WHERE zdb('products', ctid) ==> '#limit(price desc, 1, 1) author:("foo","bar")' ORDER BY products.availability_date DESC
+    WHERE zdb('products', ctid) ==> '#limit(price desc, 1, 1) author:("foo","bar")' 
+ORDER BY products.price DESC, products.availability_date DESC
 ```
 
-In other words, if you were previously already using `limit()` in conjunction with `order_by()` in your query building and the subject column is `ZdbColumn`, it'll try to bake a proper query for it.
+In other words, if you were previously already using `limit()` in conjunction with `order_by()` in your query building and the subject column is of type `ZdbColumn`, it'll try to bake a proper query for it.
 
 Example #2 - using `ZdbScore`
 
@@ -112,14 +112,20 @@ Example #2 - using `ZdbScore`
 from sqlalchemy_zdb.types import ZdbScore
 
 q = q.filter(Products.author.in_(["foo", "bar"]))
-q = q.order_by(ZdbScore, 
-               Products.availability_date.desc(), 
-               Products.long_description.desc()).limit(1).offset(1)
+q = q.order_by(ZdbScore("asc"),
+               Products.availability_date.desc(),
+               Products.long_description.desc())
+q = q.limit(1)
+q = q.offset(1)
 ```
 
-`ZdbScore` is still in development.
+```sql
+SELECT [...] FROM products 
+    WHERE zdb('products', ctid) ==> '#limit(_score asc, 1, 1) author:("foo","bar")' 
+ORDER BY zdb_score('products', ctid) ASC, products.availability_date DESC, products.long_description DESC
+```
 
-
+More can be read about `#limit` in the [ZomboDB documentation](https://github.com/zombodb/zombodb/blob/master/SYNTAX.md#limitoffset-with-sorting).
 
 ## Constructing filters
 If you want to have more control over your query, you may use `zdb_raw_query` directly.

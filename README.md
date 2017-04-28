@@ -48,7 +48,7 @@ class Products(base):
     keywords = Column(ARRAY(Unicode(64)))
     short_summary = ZdbColumn(PHRASE())
     long_description = ZdbColumn(FULLTEXT(41))
-    price = Column(BIGINT())
+    price = ZdbColumn(BIGINT())
     inventory_count = Column(Integer()),
     discontinued = Column(Boolean(), default=False)
     availability_date = Column(DateTime())

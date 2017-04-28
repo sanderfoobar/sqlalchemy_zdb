@@ -72,5 +72,8 @@ class ZdbPhrase(object):
 
 
 class ZdbScore(Column):
-    def __init__(self):
+    def __init__(self, direction="asc"):
         super(ZdbScore, self)
+        if not direction in ("asc", "desc"):
+            raise Exception("Invalid parameter for direction")
+        self._zdb_direction = direction

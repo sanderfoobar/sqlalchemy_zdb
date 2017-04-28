@@ -93,9 +93,9 @@ def compile_limit(offset: int, limit: int, order_by=None):
     # dirty hack, UnaryExpression doesnt implement boolean clause comparison
     if type(order_by) == type(None):
         raise Exception("Expected UnaryExpression or ZdbScore for zdb LIMIT")
-    if hasattr(order_by, "element") and type(order_by.element) == ZdbScore:
+    if isinstance(order_by, ZdbScore):
         column_name = "_score"
-        direction = "asc"
+        direction = order_by._zdb_direction
     elif isinstance(order_by, UnaryExpression):
         column = next(iter(order_by.element.base_columns))
         column_name = column.name
@@ -170,14 +170,10 @@ def compile_zdb_query(element, compiler, **kw):
     else:
         table = tables.pop()
 
-    if hasattr(element, "_zdb_order_by") and element._zdb_order_by:
+    if hasattr(element, "_zdb_order_by") and isinstance(element._zdb_order_by, (UnaryExpression, ZdbScore)):
         limit = compile_limit(order_by=element._zdb_order_by,
                               offset=element._zdb_offset,
                               limit=element._zdb_limit)
-
-    # if format_args:
-    #     return "zdb(\'%s\', ctid) ==> format(\'%s\', %s)" % (table, " and ".join(query), ", ".join(format_args))
-    # return "zdb(\'%s\', ctid) ==> \'%s\'" % (table, " and ".join(query))
 
     sql = "zdb(\'%s\', ctid) ==> " % table
     if format_args and isinstance(format_args, list):
@@ -204,9 +200,3 @@ def compile_zdb_score(element, compiler, **kw):
         return "zdb_score(\'%s\', %s.ctid)" % (c.value.__tablename__, c.value.__tablename__)
 
     raise ValueError("Incorrect param")
-
-
-# @compiles(order_by, "postgresql")
-# def compile_order_by_clause(element, compiler, **kw):
-#     e = ""
-#     pass
