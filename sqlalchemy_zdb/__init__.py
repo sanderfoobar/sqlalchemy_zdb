@@ -6,9 +6,9 @@ from sqlalchemy.sql.expression import (
 from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.orm.query import Query
 from sqlalchemy import Column, and_, func, text
-
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm.scoping import scoped_session, Session
-from sqlalchemy_zdb.utils import print_sql
+
 from sqlalchemy_zdb.types import ZdbColumn, ZdbScore
 
 
@@ -30,6 +30,10 @@ class ZdbQuery(Query):
     def _zdb_check_session(self):
         if not self.session:
             raise Exception("Session not set")
+
+    def _zdb_compile(self):
+        self = self._zdb_make_query()
+        return self.statement.compile(dialect=postgresql.dialect())
 
     @staticmethod
     def _zdb_clauses_by_column(clauses: List[ColumnElement]):

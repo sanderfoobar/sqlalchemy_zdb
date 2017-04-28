@@ -1,2 +1,3 @@
 sqlalchemy
 sqlalchemy_utils
+pytest

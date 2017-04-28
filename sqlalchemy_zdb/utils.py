@@ -1,9 +1,10 @@
 from __future__ import print_function
 from sqlalchemy.sql import compiler
+from sqlalchemy.dialects.postgresql.psycopg2 import PGCompiler_psycopg2
 from psycopg2.extensions import adapt as sqlescape
 
 
-def query_to_sql(q):
+def _query_to_sql(q):
     r"""SQL as string
     :param q: ``sqlalchemy.orm.query``
     :return: SQL as string
@@ -21,9 +22,11 @@ def query_to_sql(q):
     return comp.string
 
 
-def print_sql(q):
-    r"""Print SQL for the query object
-    :param q: ``sqlalchemy.orm.query``
-    :return:
+def query_to_sql(q):
+    r"""SQL as string
+    :param q: Instance of ZdbQuery
+    :return: SQL as string
     """
-    print("\n\n%s\n\n" % query_to_sql(q))
+    from sqlalchemy_zdb import ZdbQuery
+    compiled = q._zdb_compile()
+    return "\n\n%s\n\n" % compiled % compiled.params
