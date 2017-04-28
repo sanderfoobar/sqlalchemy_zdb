@@ -49,7 +49,7 @@ class Products(base):
     short_summary = ZdbColumn(PHRASE())
     long_description = ZdbColumn(FULLTEXT(41))
     price = ZdbColumn(BIGINT())
-    inventory_count = Column(Integer()),
+    inventory_count = Column(Integer())
     discontinued = Column(Boolean(), default=False)
     availability_date = Column(DateTime())
     author = ZdbColumn(Unicode(32))
