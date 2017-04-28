@@ -20,19 +20,13 @@ WHERE zdb('products', ctid) ==> 'price > 5'
 ```
 
 ### BETWEEN
-Could not get `field:start /to/ END` work (as per [documentation](https://github.com/zombodb/zombodb/blob/master/SYNTAX.md#operators)), instead made it return:
-
-    column >= 5 and column <= 15
-
-*Warning: Only works on integers.*
-
 ```python
-q = q.filter(Products.price.between(5, 10))
+q = q.filter(Products.price.between(5, 14.5))
 ```
 
 ```sql
 SELECT [...] FROM products 
-WHERE zdb('products', ctid) ==> 'price >= 5 and price <= 10'
+WHERE zdb('products', ctid) ==> 'price:5 /to/ 14.5'
 ```
 
 ### LIKE
