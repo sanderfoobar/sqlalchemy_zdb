@@ -1,3 +1,4 @@
+import re
 import inspect
 import operator
 
@@ -15,13 +16,15 @@ from sqlalchemy_zdb.types import ZdbColumn, ZdbScore
 from sqlalchemy_zdb.operators import COMPARE_OPERATORS
 
 
-escape_tokens = [
-   "'", "\"",  ":",  "*",  "~", "?",
-   "!",  "%",  "&",  "(",  ")", ",",
-   "<",  "=",  ">",  "[",  "]", "^",
-   "{",  "}",  " ",  "\r", "\n",
-   "\t", "\f"
-]
+def escape_tokens(inp):
+    escape_tokens = [
+       "'", "\"",  ":",  "*",  "~", "?",
+       "!",  "%",  "&",  "(",  ")", ",",
+       "<",  "=",  ">",  "[",  "]", "^",
+       "{",  "}",  " ",  "\r", "\n",
+       "\t", "\f"]
+    [inp.replace(token, "\\%s" % token) for token in escape_tokens]
+    return inp
 
 
 def compile_binary_clause(c, compiler, tables, format_args):
@@ -110,14 +113,14 @@ def compile_limit(offset: int, limit: int, order_by=None):
 
 
 def compile_clause(c, compiler, tables, format_args):
-    if isinstance(c, BindParameter) and isinstance(c.value, (str, int)):
+    if isinstance(c, BindParameter) and isinstance(c.value, (str, int, re._pattern_type)):
         if isinstance(c.value, str):
-            val = c.value
-            for escape_token in escape_tokens:
-                if escape_token in c.value:
-                    val = c.value.replace(escape_token, "\\%s" % escape_token)
-            return val
-        return c.value
+            return "\"%s\"" % escape_tokens(c.value)
+        elif isinstance(c.value, re._pattern_type):
+            #return "\"%s\"" % c.value.pattern
+            return c.value.pattern
+        else:
+            return c.value
     elif isinstance(c, (True_, False_)):
         return str(type(c) == True_).lower()
     elif isinstance(c, TextClause):

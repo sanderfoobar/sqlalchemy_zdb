@@ -3,6 +3,8 @@ import operator
 
 from sqlalchemy.sql.operators import match_op, like_op, between_op, in_op
 
+from sqlalchemy_zdb.exceptions import InvalidParameterException
+
 
 def zdb_between_op(left, right, *args, **kwargs):
     r"""Implement the ``BETWEEN`` operator.
@@ -15,7 +17,7 @@ def zdb_between_op(left, right, *args, **kwargs):
     between = []
     for i, clause in enumerate(right.clauses):
         if not isinstance(clause.value, (int, float)):
-            raise Exception("Unsupported use of BETWEEN, only numbers allowed")
+            raise InvalidParameterException("Numbers only")
         between.append(clause.value)
     return "{}:{} /to/ {}".format(left.name, *between)
 
@@ -46,7 +48,7 @@ def zdb_like_op(left, right, c, compiler, tables, format_args):
 
     if isinstance(right.value, re._pattern_type):
         _oper = ":~"
-        right.value = right.value.pattern
+        right.value = right.value
     else:
         _oper = ":"
 
