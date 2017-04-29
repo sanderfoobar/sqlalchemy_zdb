@@ -20,9 +20,7 @@ def engine():
 
 @pytest.fixture(scope="session")
 def db_extension(engine):
-    print("create extension zombodb;")
     session = Session(bind=engine.connect())
-
     db_cleanup(session)
 
     res = session.execute("""
@@ -63,7 +61,7 @@ def db_zombo(engine):
        CREATE INDEX idx_zdb_products
                  ON products
               USING zombodb(zdb('products', products.ctid), zdb(products))
-               WITH (url=':es_host');
+               WITH (url=:es_host);
     """), params={"es_host": settings.es_host})
     session.commit()
     session.flush()

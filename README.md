@@ -95,4 +95,3 @@ This extension is currently in alpha. If you decide to use this package, double 
 Known issues:
 
 - ZomboDB `CREATE INDEX` and/or `CREATE TYPE` not implemented yet
-- No unit tests as of this moment
