@@ -48,7 +48,6 @@ def zdb_like_op(left, right, c, compiler, tables, format_args):
 
     if isinstance(right.value, re._pattern_type):
         _oper = ":~"
-        right.value = right.value
     else:
         _oper = ":"
 
