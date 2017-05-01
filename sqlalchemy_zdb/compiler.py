@@ -109,7 +109,7 @@ def compile_limit(offset: int, limit: int, order_by=None):
     else:
         raise Exception("Unexpected expression")
 
-    return "#limit(%s %s, %d, %d) " % (column_name, direction, offset ,limit)
+    return "#limit(%s %s, %d, %d) " % (column_name, direction, offset, limit)
 
 
 def compile_clause(c, compiler, tables, format_args):
@@ -117,8 +117,7 @@ def compile_clause(c, compiler, tables, format_args):
         if isinstance(c.value, str):
             return "\"%s\"" % escape_tokens(c.value)
         elif isinstance(c.value, re._pattern_type):
-            #return "\"%s\"" % c.value.pattern
-            return c.value.pattern
+            return "\"%s\"" % c.value.pattern
         else:
             return c.value
     elif isinstance(c, (True_, False_)):
