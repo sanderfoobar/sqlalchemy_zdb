@@ -71,6 +71,11 @@ class ZdbPhrase(object):
         return '"%s"' % self.phrase
 
 
+class ZdbLiteral(object):
+    def __init__(self, literal):
+        self.literal = literal
+
+
 class ZdbScore(Column):
     def __init__(self, direction="asc"):
         super(ZdbScore, self)

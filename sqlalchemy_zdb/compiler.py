@@ -12,7 +12,7 @@ from sqlalchemy.sql.elements import (
     False_, True_, UnaryExpression)
 
 from sqlalchemy_zdb import zdb_raw_query, zdb_score
-from sqlalchemy_zdb.types import ZdbColumn, ZdbScore
+from sqlalchemy_zdb.types import ZdbColumn, ZdbScore, ZdbLiteral
 from sqlalchemy_zdb.operators import COMPARE_OPERATORS
 
 
@@ -113,11 +113,14 @@ def compile_limit(offset: int, limit: int, order_by=None):
 
 
 def compile_clause(c, compiler, tables, format_args):
-    if isinstance(c, BindParameter) and isinstance(c.value, (str, int, re._pattern_type)):
+    if isinstance(c, BindParameter) and isinstance(c.value, (
+            str, int, re._pattern_type, ZdbLiteral)):
         if isinstance(c.value, str):
             return "\"%s\"" % escape_tokens(c.value)
         elif isinstance(c.value, re._pattern_type):
             return "\"%s\"" % c.value.pattern
+        elif isinstance(c.value, ZdbLiteral):
+            return c.value.literal
         else:
             return c.value
     elif isinstance(c, (True_, False_)):
