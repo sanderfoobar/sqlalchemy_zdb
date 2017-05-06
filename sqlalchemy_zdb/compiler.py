@@ -17,13 +17,18 @@ from sqlalchemy_zdb.operators import COMPARE_OPERATORS
 
 
 def escape_tokens(inp):
-    escape_tokens = [
+    # TODO: figure out how to properly escape characters
+    # like `'`, they seem to break up the query. For now
+    # replace it.
+    _escape_tokens = [
        "'", "\"",  ":",  "*",  "~", "?",
        "!",  "%",  "&",  "(",  ")", ",",
        "<",  "=",  ">",  "[",  "]", "^",
        "{",  "}",  " ",  "\r", "\n",
        "\t", "\f"]
-    [inp.replace(token, "\\%s" % token) for token in escape_tokens]
+    inp = inp.replace("\'", "")
+    for escape_token in _escape_tokens:
+        inp = inp.replace(escape_token, "\\%s" % escape_token)
     return inp
 
 
