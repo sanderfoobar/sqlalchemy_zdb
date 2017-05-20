@@ -59,9 +59,7 @@ class Products(base):
 - `FULLTEXT` - A zomboDB specific type
 - `PHRASE` - A ZomboDB specific type
 
-`session.metadata.create_all()` correctly creates this table.
-
-The actual ZomboDB index will not be created, this functionality is currently being worked on. For now you'll have to do it manually. See [ZomboDB Cheatsheet](https://github.com/skftn/sqlalchemy_zdb/blob/master/zombodb_cheatsheet.md)
+`session.metadata.create_all()` correctly creates this table. It also adds the ZomboDB index.
 
 ## Querying 
 
@@ -92,6 +90,3 @@ Note that both the `name` and `discontinued` columns were not included in the Zo
 
 This extension is currently in alpha. If you decide to use this package, double check if the SQL queries generated are correct. Upon weird behaviour please submit an issue so I can look into it.
 
-Known issues:
-
-- ZomboDB `CREATE INDEX` and/or `CREATE TYPE` not implemented yet
