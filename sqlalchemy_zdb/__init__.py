@@ -1,15 +1,51 @@
+import weakref
 from typing import List
 
+import sqlalchemy
 from sqlalchemy.sql.elements import BindParameter, TextClause
 from sqlalchemy.sql.expression import (
     BooleanClauseList, BinaryExpression, FunctionElement, UnaryExpression, ColumnElement)
 from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.orm.query import Query
-from sqlalchemy import Column, and_, func, text
+from sqlalchemy import Column, and_, func, text, inspect
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm.scoping import scoped_session, Session
 
+from sqlalchemy_zdb.events import before_create, after_create
+from sqlalchemy_zdb.utils import is_zdb_table
 from sqlalchemy_zdb.types import ZdbColumn, ZdbScore
+from sqlalchemy.sql.schema import MetaData
+from sqlalchemy.ext.declarative.base import _declarative_constructor
+from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
+
+
+from functools import wraps
+
+ES_HOST = "http://localhost:9200/"
+_USER_BASE = None
+
+
+def bootstrap_events(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        global _USER_BASE
+        if f.__name__ == "declarative_base":
+            base = f(*args, **kwargs)
+            base.metadata.create_all = bootstrap_events(base.metadata.create_all)
+            _USER_BASE = base
+            return base
+        elif f.__name__ == "create_all":
+            tables = [v for k, v in _USER_BASE.metadata.tables.items()]
+            for table in tables:
+                if is_zdb_table(table):
+                    before_create(table)
+                    after_create(table)
+            f(*args, **kwargs)
+        else:
+            return f(*args, **kwargs)
+    return wrapped
+
+sqlalchemy.ext.declarative.declarative_base = bootstrap_events(sqlalchemy.ext.declarative.declarative_base)
 
 
 class ZdbQuery(Query):

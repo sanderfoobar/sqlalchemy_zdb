@@ -1,11 +1,12 @@
 import os
 
+import sqlalchemy_zdb
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 import tests.settings as settings
 from tests.settings import db_user, db_pass, db_host, db_port, db_name
-from tests.models import Products
+from tests.models import base
 import pytest
 
 
@@ -15,7 +16,7 @@ cwd = os.path.dirname(os.path.abspath(__file__))
 @pytest.fixture(scope="session")
 def engine():
     return create_engine("postgresql+psycopg2://%s:%s@%s:%d/%s" % (
-        db_user, db_pass, db_host, db_port, db_name))
+        db_user, db_pass, db_host, db_port, db_name), echo=True)
 
 
 @pytest.fixture(scope="session")
@@ -40,7 +41,7 @@ def db_composite_type(engine):
 
 @pytest.yield_fixture(scope="session")
 def tables(engine):
-    Products.metadata.create_all(engine)
+    base.metadata.create_all(engine)
 
     connection = engine.connect()
     session = Session(bind=connection)
@@ -49,26 +50,11 @@ def tables(engine):
     session.commit()
     session.flush()
     yield
-    Products.metadata.drop_all(engine)
-
-
-@pytest.yield_fixture(scope="session")
-def db_zombo(engine):
-    connection = engine.connect()
-    session = Session(bind=connection)
-
-    session.execute(text("""
-       CREATE INDEX idx_zdb_products
-                 ON products
-              USING zombodb(zdb('products', products.ctid), zdb(products))
-               WITH (url=:es_host);
-    """), params={"es_host": settings.es_host})
-    session.commit()
-    session.flush()
+    base.metadata.drop_all(engine)
 
 
 @pytest.yield_fixture
-def dbsession(engine, db_extension, db_composite_type, tables, db_zombo):
+def dbsession(engine, db_extension, db_composite_type, tables):
     """Returns an sqlalchemy session, and after the test tears down everything properly."""
     connection = engine.connect()
     # begin the nested transaction
