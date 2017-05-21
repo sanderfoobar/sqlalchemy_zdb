@@ -1,6 +1,7 @@
 from __future__ import print_function
 from sqlalchemy.sql import compiler
 from sqlalchemy import text
+from sqlalchemy.sql.sqltypes import ARRAY
 from sqlalchemy.dialects.postgresql.psycopg2 import PGCompiler_psycopg2
 from psycopg2.extensions import adapt as sqlescape
 
@@ -54,8 +55,11 @@ def get_zdb_columns_as_ddl(model):
     for column in [column for column in model.columns if isinstance(column, ZdbColumn)]:
         if json and isinstance(column.type, json):
             column_type = "JSONB"
+        elif isinstance(column.type, ARRAY):
+            _type = column.type.item_type.compile()
+            column_type = "%s[]" % _type
         else:
-            column_type = column.type
+            column_type = column.type.compile()
 
         rtn.append("%s %s" % (column.name, column_type))
     return ",\n\t".join(rtn)
