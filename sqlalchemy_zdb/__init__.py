@@ -194,6 +194,10 @@ class ZdbQuery(Query):
         self = self._zdb_make_query()
         return super(ZdbQuery, self).all()
 
+    def first(self):
+        self = self._zdb_make_query()
+        return super(ZdbQuery, self).first()
+
 
 class zdb_score(FunctionElement):
     name = 'zdb_score'
