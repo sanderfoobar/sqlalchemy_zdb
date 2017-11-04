@@ -3,7 +3,7 @@ SQLAlchemy support for ZomboDb
 
 **Experimental** support for the ZomboDB query language with SQLAlchemy. Hard fork of [sqla_zdb](https://github.com/xxxbobrxxx/sqlalchemy_zombodb).
 
-Please check out [Query Syntax](https://github.com/skftn/sqlalchemy_zdb/blob/master/QUERY_SYNTAX.md) for an example of supported expressions. 
+Please check out [Query Syntax](https://github.com/skftn/sqlalchemy_zdb#syntax) for an example of supported expressions.
 
 
 ## What you need
@@ -103,6 +103,19 @@ SELECT [...] FROM products
 WHERE zdb('products', ctid) ==> 'author:"foo bar"'
 ```
 
+Stacking 'equals' conditions on a `ZdbColumn(ARRAY(String(32)))` column:
+
+```python
+q = q.filter(Products.keywords == "foo")
+q = q.filter(Products.keywords == "bar")
+```
+```sql
+SELECT [...] FROM products
+WHERE zdb('products', ctid) ==> 'keywords:"foo" and keywords:"bar"'
+```
+
+This would match rows that both have the `foo` AND `bar` keywords.
+
 ### GT/LT
 
 ```python
@@ -161,6 +174,8 @@ q = q.filter(Products.author.in_(["foo", "bar"]))
 SELECT [...] FROM products
 WHERE zdb('products', ctid) ==> 'author:("foo","bar")'
 ```
+
+This matches both authors named 'foo' OR 'bar'.
 
 ### #LIMIT
 
