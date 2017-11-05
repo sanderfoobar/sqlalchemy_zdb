@@ -1,7 +1,7 @@
 import re
 import operator
 
-from sqlalchemy.sql.operators import match_op, like_op, between_op, in_op
+from sqlalchemy.sql.operators import match_op, like_op, between_op, in_op, isnot
 
 from sqlalchemy_zdb.exceptions import InvalidParameterException
 
@@ -72,5 +72,6 @@ COMPARE_OPERATORS = {
     like_op: zdb_like_op,
     operator.eq: ":",
     between_op: zdb_between_op,
-    in_op: zdb_in_op
+    in_op: zdb_in_op,
+    isnot: " != "
 }

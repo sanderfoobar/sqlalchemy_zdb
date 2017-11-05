@@ -9,7 +9,7 @@ from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.sql.annotation import AnnotatedColumn
 from sqlalchemy.sql.elements import (
     BinaryExpression, BindParameter, TextClause, BooleanClauseList, Grouping,
-    False_, True_, UnaryExpression)
+    False_, True_, UnaryExpression, Null)
 
 from sqlalchemy_zdb import zdb_raw_query, zdb_score
 from sqlalchemy_zdb.types import ZdbColumn, ZdbScore, ZdbLiteral
@@ -140,6 +140,8 @@ def compile_clause(c, compiler, tables, format_args):
         return compile_column_clause(c, compiler, tables, format_args)
     elif isinstance(c, Grouping):
         return compile_grouping(c, compiler, tables, format_args)
+    elif isinstance(c, Null):
+        return "NULL"
     raise ValueError("Unsupported clause")
 
 
